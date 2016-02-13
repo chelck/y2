@@ -1,0 +1,5 @@
+#!/bin/sh
+
+python3 main.py >x.dot
+dot -Tsvg x.dot > x.svg
+inkscape x.svg
