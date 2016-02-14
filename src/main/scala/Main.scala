@@ -4,5 +4,6 @@
 object Main extends App {
     print("hello\n")
 
-    Parser.parse("lfr_messages.xml")
+    val model = Parser.parse("lfr_messages.xml")
+    println(model.dot(Id(20177)))
 }

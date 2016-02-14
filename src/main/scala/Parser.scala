@@ -17,26 +17,19 @@ object Parser {
     }
 
     def parse(filename: String) = {
-        println(filename)
+        val xml = scala.xml.XML.loadFile(filename)
 
-        val foo = scala.xml.XML.loadFile(filename)
+        var messages = List[Message]()
 
-        val s = (foo \ "message").map(_.label)
-
-        for (m <- foo \ "message") {
+        for (m <- xml \ "message") {
+            val name = (m \ "@name").text
+            val id = Id((m \ "@type").text.toInt)
             val fields = (m \ "field").map((n: Node) => Model.createField((n \ "@name").text, parseEntries(n)))
 
-           for (f <- fields) {
-               f match {
-                   case UnknownField(name, command) => print(name, command)
-                   case ReferenceField(name) => print(name)
-
-                   case _ =>
-               }
-
-
-           }
+            messages = Message(name, id, fields) :: messages
         }
+        new Model(messages)
     }
-
 }
+
+

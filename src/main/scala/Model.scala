@@ -6,48 +6,62 @@
 
 sealed trait Field
 
-final case class UnknownField(name: String, command: String) extends Field
-final case class ByteField(name: String) extends Field
-final case class IntField(name: String) extends Field
-final case class ReferenceField(name: String) extends Field
+final case class PrimitiveField(name: String, command: String, position: Int) extends Field
+final case class MiscField(name: String, command: String) extends Field
+final case class UnknownField(name: String, command: String, position: Int) extends Field
 
-final case class UnsignedByteField(name: String) extends Field
-final case class UnsignedShortField(name: String) extends Field
-final case class ShortField(name: String) extends Field
-final case class StringArrayField(name: String) extends Field
-final case class LongField(name: String) extends Field
-final case class QFloatField(name: String) extends Field
-final case class AddIntegerField(name: String) extends Field
-final case class ByteArrayField(name: String) extends Field
-final case class BinfileField(name: String) extends Field
-final case class AddCurrentTimestampSecField(name: String) extends Field
-final case class AddCurrentTimestampField(name: String) extends Field
+final case class ReferenceField(name: String,
+                                position: Int,
+                                version: Option[String],
+                                xxx: Option[Int]) extends Field
 
+
+case class Id(n: Int)
+case class Message(name: String, id: Id, fields: Seq[Field])
 
 
 
 object Model {
 
     def createField(name: String, keys: Map[String, String]): Field = {
-        keys("read_command") match {
-            case "readByte" => ByteField(name)
-            case "readInt" => IntField(name)
-            case "readShort" => ShortField(name)
+        val command = keys("read_command")
+        val position = keys("position").toInt
 
-            case "readUnsignedByte" => UnsignedByteField(name)
-            case "readUnsignedShort" => UnsignedShortField(name)
-            case "reference" => ReferenceField(name)
-            case "readStringArray" => StringArrayField(name)
-            case "readLong" => LongField(name)
-            case "readQfloat" => QFloatField(name)
-            case "addInteger" => AddIntegerField(name)
-            case "readByteArray" => ByteArrayField(name)
-            case "readBinfile" => BinfileField(name)
-            case "addCurrentTimestampSec" => AddCurrentTimestampSecField(name)
-            case "addCurrentTimestamp" => AddCurrentTimestampField(name)
+        command match {
+            case "addCurrentTimestamp" => MiscField(name, command)
+            case "addCurrentTimestampSec" => MiscField(name, command)
+            case "addInteger" => MiscField(name, command)
+            case "readBinfile" => MiscField(name, command)
 
-            case _ => UnknownField(name, keys("read_command"))
+            case "readByte" => PrimitiveField(name, command, position)
+            case "readInt" => PrimitiveField(name, command, position)
+            case "readShort" => PrimitiveField(name, command, position)
+            case "readUnsignedByte" => PrimitiveField(name, command, position)
+            case "readUnsignedShort" => PrimitiveField(name, command, position)
+            case "readStringArray" => PrimitiveField(name, command, position)
+            case "readLong" => PrimitiveField(name, command, position)
+            case "readQfloat" => PrimitiveField(name, command, position)
+            case "readByteArray" => PrimitiveField(name, command, position)
+
+            case "reference" => createReference(name, position, keys)
+
+            case _ => UnknownField(name, command, position)
         }
     }
 
+    def createReference(name: String, position: Int, keys: Map[String, String]) : Field = {
+        ReferenceField(name,
+                       position,
+                       keys.get("base_key"),
+                       keys.get("base_value").map(_.toInt))
+    }
+}
+
+class Model(messages: Seq[Message]) {
+
+    def dot(id: Id): String = {
+    var s = "digraph G {"
+    s += "}"
+    s
+    }
 }
