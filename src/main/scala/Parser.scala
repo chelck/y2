@@ -1,9 +1,5 @@
-import scala.xml.Elem
 import scala.xml.Node
 
-/**
-  * Created by chris on 2/12/16.
-  */
 
 object Parser {
 
@@ -19,16 +15,16 @@ object Parser {
     def parse(filename: String) = {
         val xml = scala.xml.XML.loadFile(filename)
 
-        var messages = List[Message]()
+        var messages = List[(Id, Message)]()
 
         for (m <- xml \ "message") {
             val name = (m \ "@name").text
             val id = Id((m \ "@type").text.toInt)
             val fields = (m \ "field").map((n: Node) => Model.createField((n \ "@name").text, parseEntries(n)))
 
-            messages = Message(name, id, fields) :: messages
+            messages = (id, Message(name, id, fields)) :: messages
         }
-        new Model(messages)
+        new Model(messages.toMap)
     }
 }
 

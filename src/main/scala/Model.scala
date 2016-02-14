@@ -1,8 +1,3 @@
-/**
-  * Created by chris on 2/13/16.
-  */
-
-
 
 sealed trait Field
 
@@ -16,8 +11,18 @@ final case class ReferenceField(name: String,
                                 xxx: Option[Int]) extends Field
 
 
-case class Id(n: Int)
-case class Message(name: String, id: Id, fields: Seq[Field])
+case class Id(n: Int) {
+    override def toString = n.toString
+}
+
+case class Message(name: String, id: Id, fields: Seq[Field]) {
+
+    def dot: String = {
+        s"""
+           |$id [label="$name", color="blue"];
+      """.stripMargin
+    }
+}
 
 
 
@@ -57,11 +62,15 @@ object Model {
     }
 }
 
-class Model(messages: Seq[Message]) {
+class Model(messages: Map[Id, Message]) {
 
     def dot(id: Id): String = {
-    var s = "digraph G {"
-    s += "}"
-    s
+        val insides = messages.get(id).map(_.dot).mkString("")
+        s"""
+           |digraph G {
+           | ${insides}
+           |}
+          """.stripMargin
+
     }
 }
