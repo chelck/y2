@@ -3,12 +3,13 @@ sealed trait Field {
     def dot(model: Model, parent: Id): String = ""
 }
 
-final case class PrimitiveField(name: String, command: String, position: Int) extends Field
+final case class PrimitiveField(parent: Id, name: String, command: String, position: Int) extends Field
 
-final case class MiscField(name: String, command: String) extends Field
-final case class UnknownField(name: String, command: String, position: Int) extends Field
+final case class MiscField(parent: Id, name: String, command: String) extends Field
+final case class UnknownField(parent: Id, name: String, command: String, position: Int) extends Field
 
-final case class ReferenceField(name: String,
+final case class ReferenceField(parent: Id,
+                                name: String,
                                 position: Int,
                                 defaultId: Option[Id],
                                 versionKey: Option[String],
@@ -45,9 +46,11 @@ case class Message(name: String, id: Id, fields: Seq[Field]) {
 class Model(messages: Map[Id, Message]) {
     val versions = Map("30_message_version" -> List(1,2,3,4,5,6,7,8,9))
 
-    def getVersions(parent: Id, versionField: Option[String]): List[Int] = {
-        versionField match {
-            case Some(field) => versions.getOrElse(s"${parent}_${field}", List())
+    def createVersionKey(parent: Id, fieldName: String) = s"${parent}_${fieldName}"
+
+    def getVersions(parent: Id, versionKey: Option[String]): List[Int] = {
+        versionKey match {
+            case Some(key) => versions.getOrElse(createVersionKey(parent, key), List())
             case None => List()
         }
     }
