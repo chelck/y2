@@ -1,76 +1,88 @@
 
-sealed trait Field
+sealed trait Field {
+    def dot(model: Model, parent: Id): String = ""
+}
 
 final case class PrimitiveField(name: String, command: String, position: Int) extends Field
+
 final case class MiscField(name: String, command: String) extends Field
 final case class UnknownField(name: String, command: String, position: Int) extends Field
 
 final case class ReferenceField(name: String,
                                 position: Int,
-                                version: Option[String],
-                                xxx: Option[Int]) extends Field
+                                defaultId: Option[Id],
+                                versionKey: Option[String],
+                                baseId: Option[Id]) extends Field {
 
+    override def dot(model: Model, parent: Id) = {
+        val fieldKey = Dot.createFieldDotId(parent, position)
+        val children = model.foo(parent, versionKey, baseId)
 
-case class Id(n: Int) {
-    override def toString = n.toString
+        s"""
+           |$fieldKey ${Dot.fieldLabel(name, "blue")};
+           |$parent -> $fieldKey
+           |${defaultId.map(model.dotDefault(fieldKey.name, _)).mkString("\n")}
+           |${children.map(model.dot(fieldKey.name, _)).mkString("\n")}
+           |""".stripMargin
+    }
 }
+
+
 
 case class Message(name: String, id: Id, fields: Seq[Field]) {
 
-    def dot: String = {
-        s"""
-           |$id [label="$name", color="blue"];
-      """.stripMargin
+    def dot(model: Model): String = {
+        dotNode + fields.map(_.dot(model, id)).mkString("\n")
+
     }
+
+    def dotNode: String = s"""$id ${Dot.messageLabel(name, id, "blue")};"""
 }
 
 
 
-object Model {
 
-    def createField(name: String, keys: Map[String, String]): Field = {
-        val command = keys("read_command")
-        val position = keys("position").toInt
+class Model(messages: Map[Id, Message]) {
+    val versions = Map("30_message_version" -> List(1,2,3,4,5,6,7,8,9))
 
-        command match {
-            case "addCurrentTimestamp" => MiscField(name, command)
-            case "addCurrentTimestampSec" => MiscField(name, command)
-            case "addInteger" => MiscField(name, command)
-            case "readBinfile" => MiscField(name, command)
-
-            case "readByte" => PrimitiveField(name, command, position)
-            case "readInt" => PrimitiveField(name, command, position)
-            case "readShort" => PrimitiveField(name, command, position)
-            case "readUnsignedByte" => PrimitiveField(name, command, position)
-            case "readUnsignedShort" => PrimitiveField(name, command, position)
-            case "readStringArray" => PrimitiveField(name, command, position)
-            case "readLong" => PrimitiveField(name, command, position)
-            case "readQfloat" => PrimitiveField(name, command, position)
-            case "readByteArray" => PrimitiveField(name, command, position)
-
-            case "reference" => createReference(name, position, keys)
-
-            case _ => UnknownField(name, command, position)
+    def getVersions(parent: Id, versionField: Option[String]): List[Int] = {
+        versionField match {
+            case Some(field) => versions.getOrElse(s"${parent}_${field}", List())
+            case None => List()
         }
     }
 
-    def createReference(name: String, position: Int, keys: Map[String, String]) : Field = {
-        ReferenceField(name,
-                       position,
-                       keys.get("base_key"),
-                       keys.get("base_value").map(_.toInt))
+    def foo(parent: Id, versionField: Option[String], baseValue: Option[Id]): List[Id] = {
+        val v = getVersions(parent, versionField)
+
+        (versionField, baseValue) match {
+            case (Some(field), Some(base)) => base :: base.plus(1) :: v.map(base.plus(_))
+            case (Some(field), None) => List()
+            case (None, Some(base)) => base :: base.plus(1) :: v.map(base.plus(_))
+            case (None, None) => List()
+
+        }
     }
-}
 
-class Model(messages: Map[Id, Message]) {
-
-    def dot(id: Id): String = {
-        val insides = messages.get(id).map(_.dot).mkString("")
+    def graph(id: Id): String = {
+        val insides = messages.get(id).map(_.dot(this)).mkString("")
         s"""
            |digraph G {
-           | ${insides}
+           |${dot("root", id)}
            |}
           """.stripMargin
 
     }
+
+    def dot(parent: String, id: Id): String = {
+        s"$parent -> $id\n" +
+        messages.get(id).map(_.dot(this)).mkString("")
+    }
+
+    def dotDefault(parent: String, id: Id): String = {
+        s"""$parent -> $id [color="orange"];\n""" +
+          messages.get(id).map(_.dot(this)).mkString("")
+    }
+
+
 }
