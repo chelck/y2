@@ -3,13 +3,13 @@ import scala.xml.Node
 
 object Parser {
 
-    def parseEntries(field: Node) = {
+    def parseKeys(field: Node): Map[String, String] = {
         var entries = List[(String, String)]()
         for (e <- field \ "entry") {
             entries = ((e \ "@key").text, e.text) :: entries
         }
 
-        entries.toMap
+        entries.filter(!_._2.isEmpty).toMap
     }
 
     def parse(filename: String) = {
@@ -20,7 +20,7 @@ object Parser {
         for (m <- xml \ "message") {
             val name = (m \ "@name").text
             val id = Id((m \ "@type").text.toInt)
-            val fields = (m \ "field").map((n: Node) => parseField((n \ "@name").text, parseEntries(n)))
+            val fields = (m \ "field").map((n: Node) => parseField((n \ "@name").text, parseKeys(n)))
 
             messages = (id, Message(name, id, fields)) :: messages
         }
