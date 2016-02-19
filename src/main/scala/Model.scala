@@ -1,6 +1,6 @@
 
 sealed trait Field {
-    def dot(model: Model, parent: MessageId): String = ""
+    def draw(model: Model, parent: MessageId): String = ""
 }
 
 final case class PrimitiveField(parent: MessageId, name: String, command: String, position: Int) extends Field
@@ -15,15 +15,15 @@ final case class ReferenceField(parent: MessageId,
                                 versionKey: Option[String],
                                 baseId: Option[MessageId]) extends Field {
 
-    override def dot(model: Model, parent: MessageId) = {
+    override def draw(model: Model, parent: MessageId) = {
         val fieldKey = Dot.createFieldDotId(parent, position)
         val children = model.foo(parent, versionKey, baseId)
 
         s"""
            |$fieldKey ${Dot.fieldLabel(name, "blue")};
            |$parent -> $fieldKey
-           |${defaultId.map(model.dotDefault(fieldKey.name, _)).mkString("\n")}
-           |${children.map(model.dot(fieldKey.name, _)).mkString("\n")}
+           |${defaultId.map(model.drawDefaultParentChild(fieldKey.name, _)).mkString("\n")}
+           |${children.map(model.drawParentChild(fieldKey.name, _)).mkString("\n")}
            |""".stripMargin
     }
 }
@@ -32,8 +32,8 @@ final case class ReferenceField(parent: MessageId,
 
 case class Message(id: MessageId, name: String, fields: Seq[Field]) {
 
-    def dot(model: Model): String = {
-        dotNode + fields.map(_.dot(model, id)).mkString("\n")
+    def draw(model: Model): String = {
+        dotNode + fields.map(_.draw(model, id)).mkString("\n")
 
     }
 
@@ -67,23 +67,23 @@ class Model(messages: Map[MessageId, Message]) {
         }
     }
 
-    def graph(id: MessageId): String = {
+    def drawGraph(id: MessageId): String = {
         s"""
            |digraph G {
-           |${dot("root", id)}
+           |${drawParentChild("root", id)}
            |}
           """.stripMargin
 
     }
 
-    def dot(parent: String, child: MessageId): String = {
+    def drawParentChild(parent: String, child: MessageId): String = {
         s"$parent -> $child\n" +
-        messages.get(child).map(_.dot(this)).mkString("")
+        messages.get(child).map(_.draw(this)).mkString("")
     }
 
-    def dotDefault(parent: String, child: MessageId): String = {
+    def drawDefaultParentChild(parent: String, child: MessageId): String = {
         s"""$parent -> $child [color="orange"];\n""" +
-          messages.get(child).map(_.dot(this)).mkString("")
+          messages.get(child).map(_.draw(this)).mkString("")
     }
 
 
