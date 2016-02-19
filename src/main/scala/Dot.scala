@@ -8,7 +8,7 @@ case class FieldDotId(name: String) {
 
 object Dot {
 
-    def createFieldDotId(id: MessageId, position: Int) = FieldDotId(s"field_${id}_${position}")
+    def createFieldId(id: MessageId, position: Int) = FieldDotId(s"field_${id}_${position}")
 
     def messageLabel(name: String, id: MessageId, color: String) = {
         s"""[label=\"$name\\n$id", color="$color"]"""
@@ -16,6 +16,14 @@ object Dot {
 
     def fieldLabel(name: String, color: String) = {
         s"""[label=\"$name", color="$color"]"""
+    }
+
+    def relationship(parent: String, child: String): String = {
+        s"$parent -> $child\n"
+    }
+
+    def defaultRelationship(parent: String, child: String): String = {
+        s"""$parent -> $child [color="orange"];\n"""
     }
 
 }

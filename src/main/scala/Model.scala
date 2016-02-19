@@ -16,8 +16,8 @@ final case class ReferenceField(parent: MessageId,
                                 baseId: Option[MessageId]) extends Field {
 
     override def draw(model: Model, parent: MessageId) = {
-        val fieldKey = Dot.createFieldDotId(parent, position)
-        val children = model.foo(parent, versionKey, baseId)
+        val fieldKey = Dot.createFieldId(parent, position)
+        val children = model.findChildren(parent, versionKey, baseId)
 
         s"""
            |$fieldKey ${Dot.fieldLabel(name, "blue")};
@@ -55,7 +55,7 @@ class Model(messages: Map[MessageId, Message]) {
         }
     }
 
-    def foo(parent: MessageId, versionField: Option[String], baseValue: Option[MessageId]): List[MessageId] = {
+    def findChildren(parent: MessageId, versionField: Option[String], baseValue: Option[MessageId]): List[MessageId] = {
         val v = getVersions(parent, versionField)
 
         (versionField, baseValue) match {
@@ -77,12 +77,12 @@ class Model(messages: Map[MessageId, Message]) {
     }
 
     def drawParentChild(parent: String, child: MessageId): String = {
-        s"$parent -> $child\n" +
+        Dot.relationship(parent, child.toString) +
         messages.get(child).map(_.draw(this)).mkString("")
     }
 
     def drawDefaultParentChild(parent: String, child: MessageId): String = {
-        s"""$parent -> $child [color="orange"];\n""" +
+        Dot.defaultRelationship(parent, child.toString) +
           messages.get(child).map(_.draw(this)).mkString("")
     }
 
