@@ -3,17 +3,17 @@ import scala.xml.Node
 
 object Parser {
 
-    def parse(filename: String) = {
+    def parse(filename: String): Model = {
         val xml = scala.xml.XML.loadFile(filename)
 
-        var messages = List[(Id, Message)]()
+        var messages = List[(MessageId, Message)]()
 
         for (m <- xml \ "message") {
             val name = (m \ "@name").text
-            val id = Id((m \ "@type").text.toInt)
+            val id = MessageId((m \ "@type").text.toInt)
             val fields = (m \ "field").map((n: Node) => parseField(id, (n \ "@name").text, parseKeys(n)))
 
-            messages = (id, Message(name, id, fields)) :: messages
+            messages = (id, Message(id, name, fields)) :: messages
         }
         new Model(messages.toMap)
     }
@@ -29,7 +29,7 @@ object Parser {
     }
 
 
-    def parseField(parent: Id, name: String, keys: Map[String, String]): Field = {
+    def parseField(parent: MessageId, name: String, keys: Map[String, String]): Field = {
         val command = keys("read_command")
         val position = keys("position").toInt
 
@@ -55,13 +55,13 @@ object Parser {
         }
     }
 
-    def parseReference(parent: Id, name: String, position: Int, keys: Map[String, String]): Field = {
+    def parseReference(parent: MessageId, name: String, position: Int, keys: Map[String, String]): Field = {
         ReferenceField(parent,
                        name,
                        position,
-                       keys.get("default_message_type").map(Id(_)),
+                       keys.get("default_message_type").map(MessageId(_)),
                        keys.get("base_key").filter(!_.isEmpty),
-                       keys.get("base_value").map(Id(_)))
+                       keys.get("base_value").map(MessageId(_)))
     }
 
 }

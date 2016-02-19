@@ -8,9 +8,9 @@ case class FieldDotId(name: String) {
 
 object Dot {
 
-    def createFieldDotId(id: Id, position: Int) = FieldDotId(s"field_${id}_${position}")
+    def createFieldDotId(id: MessageId, position: Int) = FieldDotId(s"field_${id}_${position}")
 
-    def messageLabel(name: String, id: Id, color: String) = {
+    def messageLabel(name: String, id: MessageId, color: String) = {
         s"""[label=\"$name\\n$id", color="$color"]"""
     }
 

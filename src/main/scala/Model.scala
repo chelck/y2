@@ -1,21 +1,21 @@
 
 sealed trait Field {
-    def dot(model: Model, parent: Id): String = ""
+    def dot(model: Model, parent: MessageId): String = ""
 }
 
-final case class PrimitiveField(parent: Id, name: String, command: String, position: Int) extends Field
+final case class PrimitiveField(parent: MessageId, name: String, command: String, position: Int) extends Field
 
-final case class MiscField(parent: Id, name: String, command: String) extends Field
-final case class UnknownField(parent: Id, name: String, command: String, position: Int) extends Field
+final case class MiscField(parent: MessageId, name: String, command: String) extends Field
+final case class UnknownField(parent: MessageId, name: String, command: String, position: Int) extends Field
 
-final case class ReferenceField(parent: Id,
+final case class ReferenceField(parent: MessageId,
                                 name: String,
                                 position: Int,
-                                defaultId: Option[Id],
+                                defaultId: Option[MessageId],
                                 versionKey: Option[String],
-                                baseId: Option[Id]) extends Field {
+                                baseId: Option[MessageId]) extends Field {
 
-    override def dot(model: Model, parent: Id) = {
+    override def dot(model: Model, parent: MessageId) = {
         val fieldKey = Dot.createFieldDotId(parent, position)
         val children = model.foo(parent, versionKey, baseId)
 
@@ -30,7 +30,7 @@ final case class ReferenceField(parent: Id,
 
 
 
-case class Message(name: String, id: Id, fields: Seq[Field]) {
+case class Message(id: MessageId, name: String, fields: Seq[Field]) {
 
     def dot(model: Model): String = {
         dotNode + fields.map(_.dot(model, id)).mkString("\n")
@@ -43,19 +43,19 @@ case class Message(name: String, id: Id, fields: Seq[Field]) {
 
 
 
-class Model(messages: Map[Id, Message]) {
+class Model(messages: Map[MessageId, Message]) {
     val versions = Map("30_message_version" -> List(1,2,3,4,5,6,7,8,9))
 
-    def createVersionKey(parent: Id, fieldName: String) = s"${parent}_${fieldName}"
+    def createVersionKey(parent: MessageId, fieldName: String) = s"${parent}_${fieldName}"
 
-    def getVersions(parent: Id, versionKey: Option[String]): List[Int] = {
+    def getVersions(parent: MessageId, versionKey: Option[String]): List[Int] = {
         versionKey match {
             case Some(key) => versions.getOrElse(createVersionKey(parent, key), List())
             case None => List()
         }
     }
 
-    def foo(parent: Id, versionField: Option[String], baseValue: Option[Id]): List[Id] = {
+    def foo(parent: MessageId, versionField: Option[String], baseValue: Option[MessageId]): List[MessageId] = {
         val v = getVersions(parent, versionField)
 
         (versionField, baseValue) match {
@@ -67,8 +67,7 @@ class Model(messages: Map[Id, Message]) {
         }
     }
 
-    def graph(id: Id): String = {
-        val insides = messages.get(id).map(_.dot(this)).mkString("")
+    def graph(id: MessageId): String = {
         s"""
            |digraph G {
            |${dot("root", id)}
@@ -77,14 +76,14 @@ class Model(messages: Map[Id, Message]) {
 
     }
 
-    def dot(parent: String, id: Id): String = {
-        s"$parent -> $id\n" +
-        messages.get(id).map(_.dot(this)).mkString("")
+    def dot(parent: String, child: MessageId): String = {
+        s"$parent -> $child\n" +
+        messages.get(child).map(_.dot(this)).mkString("")
     }
 
-    def dotDefault(parent: String, id: Id): String = {
-        s"""$parent -> $id [color="orange"];\n""" +
-          messages.get(id).map(_.dot(this)).mkString("")
+    def dotDefault(parent: String, child: MessageId): String = {
+        s"""$parent -> $child [color="orange"];\n""" +
+          messages.get(child).map(_.dot(this)).mkString("")
     }
 
 
